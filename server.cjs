@@ -2,6 +2,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const leetcode = require('./leetcode-core.js');
 
 function localConfig(root, env = process.env) {
   const config = {};
@@ -44,17 +45,18 @@ function createApp({apiKey = '', model = 'gpt-4.1-mini', port = 8765, root = __d
       const route = req.url.split('?')[0];
       if (req.method === 'GET' && route === '/api/gpt/status') return json(res,200,{configured:!!apiKey,model,provider:'openai'});
       if (req.method === 'GET' && route === '/api/health') return json(res,200,{app:'thinkbook',ok:true});
-      const assets = {'/':['index.html','text/html'], '/app.js':['app.js','text/javascript'], '/style.css':['style.css','text/css']};
+      const assets = {'/':['index.html','text/html'], '/index.html':['index.html','text/html'], '/app.js':['app.js','text/javascript'], '/style.css':['style.css','text/css'], '/leetcode.html':['leetcode.html','text/html'], '/leetcode.js':['leetcode.js','text/javascript'], '/leetcode-core.js':['leetcode-core.js','text/javascript'], '/leetcode.css':['leetcode.css','text/css']};
       if (req.method === 'GET' && assets[route]) {
         const [file,type]=assets[route];
         res.writeHead(200,{'Content-Type':type+'; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"frame-ancestors 'none'; base-uri 'none'; form-action 'self'"});
         return res.end(fs.readFileSync(path.join(root,file)));
       }
-      if (req.method !== 'POST' || route !== '/api/gpt/respond') return json(res,404,{error:'Not found'});
+      const isLesson = route === '/api/leetcode/lesson';
+      if (req.method !== 'POST' || (!isLesson && route !== '/api/gpt/respond')) return json(res,404,{error:'Not found'});
       if (!origins.has(req.headers.origin)) return json(res,403,{error:'Open the notebook through its local server before using GPT.'});
       if (!(req.headers['content-type'] || '').toLowerCase().startsWith('application/json')) return json(res,415,{error:'Send a JSON request.'});
       let raw='';for await (const chunk of req) {raw+=chunk;if(Buffer.byteLength(raw)>120000)return json(res,413,{error:'This request is too large.'});}
-      let body;try {body=validateRequest(JSON.parse(raw));}catch(e){return json(res,400,{error:e instanceof SyntaxError?'Invalid JSON request.':e.message});}
+      let body;try {const input=JSON.parse(raw);if(isLesson){if(typeof input.problem!=='string'||input.problem.trim().length<30||input.problem.length>14000)throw Error('Paste 30 to 14,000 characters of problem text, including examples and constraints.');body=validateRequest({messages:leetcode.teachingMessages(input.problem),model:input.model});body.maxTokens=8000;}else body=validateRequest(input);}catch(e){return json(res,400,{error:e instanceof SyntaxError?'Invalid JSON request.':e.message});}
       if (!apiKey) return json(res,503,{error:'Set OPENAI_API_KEY in the server environment or local .env, then restart Thinkbook.'});
       const now=Date.now();while(requests.length&&requests[0]<now-60000)requests.shift();
       if (inFlight) return json(res,429,{error:'Another GPT response is still running. Wait or stop it before retrying.'});
@@ -74,6 +76,7 @@ function createApp({apiKey = '', model = 'gpt-4.1-mini', port = 8765, root = __d
         }
         const data=await response.json(),text=extractText(data);
         if (!text) return json(res,502,{error:'OpenAI returned no visible answer. Try a different model or a shorter request.'});
+        if(isLesson){let parsed;try{parsed=JSON.parse(text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,''));if(typeof parsed.error==='string')return json(res,422,{error:parsed.error.slice(0,500)});parsed=leetcode.validateLesson(parsed);}catch{return json(res,502,{error:'The model returned an incomplete lesson. No partial result was installed. Try again or use a more capable model.'});}return json(res,200,{lesson:parsed,model:body.model||model});}
         return json(res,200,{text,model:body.model||model});
       } catch(e) {if(!res.destroyed)return json(res,controller.signal.aborted?504:502,{error:controller.signal.aborted?'GPT request was stopped or timed out.':'Could not reach OpenAI. Check the connection and try again.'});}
       finally {clearTimeout(timeout);res.removeListener('close',cancel);inFlight=false;}

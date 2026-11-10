@@ -19,7 +19,15 @@ ChatGPT Plus and OpenAI API billing are separate. This app does not use your Cha
 
 GPT sends the selected passage, a bounded amount of notebook context, the note goal/reviewer instructions, and recent conversation messages to OpenAI. API requests set `store: false`; that is not a promise of zero retention under every OpenAI policy. Read the API's data policies for your account.
 
-## Local AI without a subscription
+## LeetCode companion
+
+Open `LeetCode_Companion.html` directly for the full authored Two Sum lesson, or visit `/leetcode.html` in the server edition. It covers the input/output contract, hand-worked examples, brute force, the derivation of complement lookup, an invariant and correctness argument, average/worst-case costs, edge cases, Python, and C. The interactive dry run computes real dictionary states from editable arrays, including duplicates, zeroes, negatives, and custom no-solution inputs. Select code lines to read their purpose, and answer checkpoints before revealing the worked answers.
+
+For another problem, choose **Choose a question**, paste the full problem, examples and constraints, and consent to the GPT request. The server generates an eight-chapter lesson with Python and C code, language notes, checkpoints, and a visual state sequence. This is on-demand support for pasted questions, not a preloaded or verified archive of every LeetCode problem. Generated code is not executed or submitted, and generated traces are explicitly marked as unverified. Follow-up questions use the same lesson context. Your existing `OPENAI_API_KEY` setup enables these features; no key is added to the browser.
+
+The authored Python solution is exercised on fixed and randomized inputs during development. The C source is included and explained, but it must be compiled and checked on a machine with a C compiler. No compiler is bundled with the app.
+
+## Browser-local notebook AI
 
 Open `Thinkbook_Open.html` directly in current Edge or Chrome. Select **Enable AI  Local AI** and download/load a model. A compatible WebGPU adapter and sufficient memory are required. The model runtime and weights are downloaded from public servers; note inference happens locally. Model quality and speed depend on the selected model and hardware. Models need reloading into memory when the page is reopened, though cached downloads can be reused.
 
@@ -44,4 +52,5 @@ Official references:
 - https://developers.openai.com/api/reference/overview
 - https://help.openai.com/en/articles/9039756-managing-billing-for-chatgpt-and-the-api-platform
 - https://webllm.mlc.ai/docs/user/get_started.html
+
 
