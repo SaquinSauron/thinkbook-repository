@@ -1,0 +1,9 @@
+{
+  "name": "thinkbook",
+  "version": "2.1.0",
+  "private": true,
+  "description": "A personal notebook with inline questions, follow-ups, diagrams, local AI and optional OpenAI GPT.",
+  "engines": {"node": ">=18.17"},
+  "scripts": {"start": "node server.cjs", "test": "node --test", "build": "node build.cjs"}
+}
+
